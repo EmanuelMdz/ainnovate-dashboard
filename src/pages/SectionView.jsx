@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { Search, Filter, Heart, Folder, FolderOpen, ArrowRight, Trash2, MoreVertical } from 'lucide-react'
+import { Search, Filter, Heart, Folder, FolderOpen, ArrowRight, Trash2, MoreVertical, Edit } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,6 +14,8 @@ import {
 import CardGrid from '@/components/cards/CardGrid'
 import DraggableCardGrid from '@/components/cards/DraggableCardGrid'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import FolderForm from '@/components/folders/FolderForm'
+import CardForm from '@/components/cards/CardForm'
 import { getSections, getCardsWithoutFolder, searchCards, reorderCards, getFoldersBySection, deleteFolder, deleteCard } from '@/lib/queries'
 import { debounce, buildFolderTree } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
@@ -28,6 +30,8 @@ export default function SectionView({ favorites, recent }) {
   const [cardsState, setCardsState] = useState([])
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, folder: null })
   const [deleteCardConfirm, setDeleteCardConfirm] = useState({ open: false, card: null })
+  const [editFolder, setEditFolder] = useState({ open: false, folder: null })
+  const [editCard, setEditCard] = useState({ open: false, card: null })
 
   // Fetch section details
   const { data: sections = [] } = useQuery({
@@ -126,6 +130,14 @@ export default function SectionView({ favorites, recent }) {
 
   const handleDeleteFolder = (folder) => {
     setDeleteConfirm({ open: true, folder })
+  }
+
+  const handleEditFolder = (folder) => {
+    setEditFolder({ open: true, folder })
+  }
+
+  const handleEditCard = (card) => {
+    setEditCard({ open: true, card })
   }
 
   const confirmDeleteFolder = () => {
@@ -266,6 +278,15 @@ export default function SectionView({ favorites, recent }) {
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation()
+                                handleEditFolder(folder)
+                              }}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Folder
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 handleDeleteFolder(folder)
                               }}
                               className="text-destructive focus:text-destructive"
@@ -314,6 +335,7 @@ export default function SectionView({ favorites, recent }) {
                 favorites={favorites}
                 recent={recent}
                 onDeleteCard={handleDeleteCard}
+                onEditCard={handleEditCard}
               />
             ) : (
               <CardGrid
@@ -321,6 +343,7 @@ export default function SectionView({ favorites, recent }) {
                 favorites={favorites}
                 recent={recent}
                 onDeleteCard={handleDeleteCard}
+                onEditCard={handleEditCard}
               />
             )
           ) : (
@@ -357,6 +380,30 @@ export default function SectionView({ favorites, recent }) {
         description={`Are you sure you want to delete "${deleteCardConfirm.card?.title}"? This action cannot be undone.`}
         confirmText="Delete"
         onConfirm={confirmDeleteCard}
+      />
+
+      {/* Edit Folder Modal */}
+      <FolderForm
+        folder={editFolder.folder}
+        sectionId={sectionId}
+        open={editFolder.open}
+        onOpenChange={(open) => setEditFolder({ open, folder: null })}
+        onSuccess={() => {
+          setEditFolder({ open: false, folder: null })
+          toast.success('Folder updated successfully')
+        }}
+      />
+
+      {/* Edit Card Modal */}
+      <CardForm
+        card={editCard.card}
+        sectionId={sectionId}
+        open={editCard.open}
+        onOpenChange={(open) => setEditCard({ open, card: null })}
+        onSuccess={() => {
+          setEditCard({ open: false, card: null })
+          toast.success('Card updated successfully')
+        }}
       />
     </div>
   )

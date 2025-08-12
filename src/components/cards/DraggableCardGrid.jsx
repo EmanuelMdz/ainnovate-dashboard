@@ -9,7 +9,7 @@ function reorder(list, startIndex, endIndex) {
   return result
 }
 
-export default function DraggableCardGrid({ cards, setCards, onReorder, favorites, recent, className, onDeleteCard }) {
+export default function DraggableCardGrid({ cards, setCards, onReorder, favorites, recent, className, onDeleteCard, onEditCard }) {
   const handleDragEnd = (result) => {
     if (!result.destination) return
     const newOrder = reorder(cards, result.source.index, result.destination.index)
@@ -40,8 +40,10 @@ export default function DraggableCardGrid({ cards, setCards, onReorder, favorite
               className
             )}
           >
-            {cards.map((card, index) => (
-              <Draggable key={card.id} draggableId={String(card.id)} index={index}>
+            {cards.map((card, index) => {
+              const cardId = card.id || card.card_id
+              return (
+              <Draggable key={cardId} draggableId={String(cardId)} index={index}>
                 {(dragProvided, snapshot) => (
                   <div
                     ref={dragProvided.innerRef}
@@ -49,11 +51,12 @@ export default function DraggableCardGrid({ cards, setCards, onReorder, favorite
                     {...dragProvided.dragHandleProps}
                     className={cn(snapshot.isDragging && 'rotate-1')}
                   >
-                    <Card card={card} favorites={favorites} recent={recent} onDelete={onDeleteCard} />
+                    <Card card={card} favorites={favorites} recent={recent} onDelete={onDeleteCard} onEdit={onEditCard} />
                   </div>
                 )}
               </Draggable>
-            ))}
+              )
+            })}
             {provided.placeholder}
           </div>
         )}

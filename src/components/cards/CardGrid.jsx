@@ -1,7 +1,7 @@
 import Card from './Card'
 import { cn } from '@/lib/utils'
 
-export default function CardGrid({ cards, favorites, recent, className, onDeleteCard }) {
+export default function CardGrid({ cards, favorites, recent, className, onDeleteCard, onEditCard }) {
   if (!cards || cards.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-muted-foreground">
@@ -25,6 +25,7 @@ export default function CardGrid({ cards, favorites, recent, className, onDelete
           favorites={favorites}
           recent={recent}
           onDelete={onDeleteCard}
+          onEdit={onEditCard}
         />
       ))}
     </div>

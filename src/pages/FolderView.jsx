@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import CardGrid from '@/components/cards/CardGrid'
 import DraggableCardGrid from '@/components/cards/DraggableCardGrid'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import CardForm from '@/components/cards/CardForm'
 import { getSections, getFoldersBySection, getCardsInTree, reorderCards, deleteCard } from '@/lib/queries'
 import { buildFolderTree, debounce } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
@@ -20,6 +21,7 @@ export default function FolderView({ favorites, recent }) {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [cardsState, setCardsState] = useState([])
   const [deleteCardConfirm, setDeleteCardConfirm] = useState({ open: false, card: null })
+  const [editCard, setEditCard] = useState({ open: false, card: null })
 
   // Fetch section details
   const { data: sections = [] } = useQuery({
@@ -102,10 +104,10 @@ export default function FolderView({ favorites, recent }) {
   // Sync local state for DnD when we can reorder
   const canReorder = !searchQuery && !showFavoritesOnly
   useEffect(() => {
-    if (canReorder) {
-      setCardsState(displayCards)
+    if (canReorder && cards.length > 0) {
+      setCardsState(cards)
     }
-  }, [canReorder, displayCards])
+  }, [canReorder, cards])
 
   const handleReorder = async (newOrder) => {
     try {
@@ -119,6 +121,10 @@ export default function FolderView({ favorites, recent }) {
 
   const handleDeleteCard = (card) => {
     setDeleteCardConfirm({ open: true, card })
+  }
+
+  const handleEditCard = (card) => {
+    setEditCard({ open: true, card })
   }
 
   const confirmDeleteCard = () => {
@@ -257,6 +263,7 @@ export default function FolderView({ favorites, recent }) {
             favorites={favorites}
             recent={recent}
             onDeleteCard={handleDeleteCard}
+            onEditCard={handleEditCard}
           />
         ) : (
           <CardGrid
@@ -264,6 +271,7 @@ export default function FolderView({ favorites, recent }) {
             favorites={favorites}
             recent={recent}
             onDeleteCard={handleDeleteCard}
+            onEditCard={handleEditCard}
           />
         )}
       </div>
@@ -276,6 +284,19 @@ export default function FolderView({ favorites, recent }) {
         description={`Are you sure you want to delete "${deleteCardConfirm.card?.title}"? This action cannot be undone.`}
         confirmText="Delete"
         onConfirm={confirmDeleteCard}
+      />
+
+      {/* Edit Card Modal */}
+      <CardForm
+        open={editCard.open}
+        onOpenChange={(open) => setEditCard({ open, card: null })}
+        sectionId={sectionId}
+        folderId={folderId}
+        card={editCard.card}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['cards-in-tree', folderId] })
+          setEditCard({ open: false, card: null })
+        }}
       />
     </div>
   )

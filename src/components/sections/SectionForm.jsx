@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { createSection, updateSection, deleteSection } from '@/lib/queries'
+import ImageUpload from '@/components/ui/ImageUpload'
+import { createSection, updateSection, deleteSection, createSectionWithImage, updateSectionWithImage } from '@/lib/queries'
 import { generateRandomColor } from '@/lib/utils'
 // import { useToast } from '@/contexts/ToastContext'
 
@@ -18,9 +19,34 @@ export default function SectionForm({ section, open, onOpenChange, onSuccess }) 
     color: section?.color || generateRandomColor(),
     order_index: section?.order_index || 0
   })
+  
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [removeImage, setRemoveImage] = useState(false)
+
+  // Update form data when section prop changes (for editing)
+  useEffect(() => {
+    if (section && open) {
+      setFormData({
+        name: section.name || '',
+        icon: section.icon || '',
+        color: section.color || generateRandomColor(),
+        order_index: section.order_index || 0
+      })
+      setSelectedImage(null)
+      setRemoveImage(false)
+    } else if (!section && open) {
+      // Reset form for new section creation
+      resetForm()
+    }
+  }, [section, open])
 
   const createMutation = useMutation({
-    mutationFn: createSection,
+    mutationFn: ({ sectionData, imageFile }) => {
+      if (imageFile) {
+        return createSectionWithImage(sectionData, imageFile)
+      }
+      return createSection(sectionData)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['sections'])
       console.log('Sección creada exitosamente')
@@ -34,7 +60,16 @@ export default function SectionForm({ section, open, onOpenChange, onSuccess }) 
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }) => updateSection(id, data),
+    mutationFn: ({ id, data, imageFile, shouldRemoveImage }) => {
+      if (imageFile || shouldRemoveImage) {
+        const updates = { ...data }
+        if (shouldRemoveImage) {
+          updates.image_url = null
+        }
+        return updateSectionWithImage(id, updates, imageFile)
+      }
+      return updateSection(id, data)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['sections'])
       console.log('Sección actualizada exitosamente')
@@ -66,15 +101,25 @@ export default function SectionForm({ section, open, onOpenChange, onSuccess }) 
       color: generateRandomColor(),
       order_index: 0
     })
+    setSelectedImage(null)
+    setRemoveImage(false)
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
     
     if (isEditing) {
-      updateMutation.mutate({ id: section.id, ...formData })
+      updateMutation.mutate({ 
+        id: section.id, 
+        data: formData, 
+        imageFile: selectedImage,
+        shouldRemoveImage: removeImage
+      })
     } else {
-      createMutation.mutate(formData)
+      createMutation.mutate({ 
+        sectionData: formData, 
+        imageFile: selectedImage 
+      })
     }
   }
 
@@ -155,6 +200,16 @@ export default function SectionForm({ section, open, onOpenChange, onSuccess }) 
               min="0"
             />
           </div>
+
+          <ImageUpload
+            currentImage={section?.image_url}
+            onImageSelect={setSelectedImage}
+            onImageRemove={() => {
+              setSelectedImage(null)
+              setRemoveImage(true)
+            }}
+            disabled={isLoading}
+          />
 
           <DialogFooter className="flex justify-between">
             <div>

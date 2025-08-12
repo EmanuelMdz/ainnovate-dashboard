@@ -41,19 +41,38 @@ export default function DraggableSectionSelector({
                       <Link to={`/s/${section.id}`}>
                         <Button
                           variant={selectedSectionId === section.id ? 'secondary' : 'ghost'}
-                          className="w-full justify-start text-left"
+                          className="w-full justify-start text-left h-auto p-2"
                           onClick={() => onSectionSelect(section.id)}
                         >
-                          {section.icon && (
-                            <span className="mr-2 text-lg">{section.icon}</span>
-                          )}
-                          <span className="truncate">{section.name}</span>
-                          {section.color && (
-                            <div 
-                              className="ml-auto w-2 h-2 rounded-full"
-                              style={{ backgroundColor: section.color }}
-                            />
-                          )}
+                          <div className="flex items-center space-x-2 w-full">
+                            {section.image_url ? (
+                              <div className="relative w-8 h-8 rounded overflow-hidden flex-shrink-0">
+                                <img 
+                                  src={section.image_url} 
+                                  alt={section.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : section.icon ? (
+                              <span className="text-lg flex-shrink-0">{section.icon}</span>
+                            ) : (
+                              <div 
+                                className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: section.color || '#f3f4f6' }}
+                              >
+                                <span className="text-xs font-medium text-white">
+                                  {section.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <span className="truncate flex-1">{section.name}</span>
+                            {section.color && !section.image_url && (
+                              <div 
+                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: section.color }}
+                              />
+                            )}
+                          </div>
                         </Button>
                       </Link>
                     </div>

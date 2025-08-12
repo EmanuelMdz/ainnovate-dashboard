@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ExternalLink, Heart, Copy, MoreHorizontal, Trash2 } from 'lucide-react'
+import { ExternalLink, Heart, Copy, MoreHorizontal, Trash2, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card as UICard, CardContent } from '@/components/ui/card'
 import {
@@ -13,7 +13,7 @@ import { copyToClipboard, extractDomain } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 // import { useToast } from '@/contexts/ToastContext'
 
-export default function Card({ card, favorites, recent, className, onDelete }) {
+export default function Card({ card, favorites, recent, className, onDelete, onEdit }) {
   const [isHovered, setIsHovered] = useState(false)
   // const { toast } = useToast()
   
@@ -46,6 +46,11 @@ export default function Card({ card, favorites, recent, className, onDelete }) {
     onDelete?.(card)
   }
 
+  const handleEdit = (e) => {
+    e.stopPropagation()
+    onEdit?.(card)
+  }
+
   const getTypeIcon = (type) => {
     switch (type) {
       case 'gpt':
@@ -70,22 +75,22 @@ export default function Card({ card, favorites, recent, className, onDelete }) {
       onClick={handleOpen}
     >
       <CardContent className="p-4">
-        {/* Image */}
-        {card.image_url && (
-          <div className="aspect-video w-full mb-3 overflow-hidden rounded-md bg-muted">
-            <img
-              src={card.image_url}
-              alt={card.title}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          </div>
-        )}
-
-        {/* Header */}
+        {/* Header with image on left */}
         <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center space-x-2 flex-1 min-w-0">
-            <span className="text-lg">{getTypeIcon(card.type)}</span>
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            {/* Small image on left or type icon fallback */}
+            {card.image_url ? (
+              <div className="w-10 h-10 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                <img
+                  src={card.image_url}
+                  alt={card.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            ) : (
+              <span className="text-lg flex-shrink-0">{getTypeIcon(card.type)}</span>
+            )}
             <h3 className="font-semibold text-sm truncate">{card.title}</h3>
           </div>
           
@@ -135,6 +140,12 @@ export default function Card({ card, favorites, recent, className, onDelete }) {
                     View Details
                   </Link>
                 </DropdownMenuItem>
+                {onEdit && (
+                  <DropdownMenuItem onClick={handleEdit}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Card
+                  </DropdownMenuItem>
+                )}
                 {onDelete && (
                   <DropdownMenuItem
                     onClick={handleDelete}

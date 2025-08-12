@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { createFolder, updateFolder, deleteFolder, getFoldersBySection, uploadImage, deleteImage } from '@/lib/queries'
+import ImageUpload from '@/components/ui/ImageUpload'
+import { createFolder, updateFolder, deleteFolder, getFoldersBySection } from '@/lib/queries'
+import { uploadImage, deleteImage } from '@/lib/imageUtils'
 import { buildFolderTree } from '@/lib/utils'
 
 export default function FolderForm({ folder, sectionId, open, onOpenChange, onSuccess }) {
@@ -28,6 +30,22 @@ export default function FolderForm({ folder, sectionId, open, onOpenChange, onSu
   })
 
   const folderTree = buildFolderTree(folders.filter(f => f.id !== folder?.id)) // Exclude current folder
+
+  // Update form data when folder prop changes (for editing)
+  useEffect(() => {
+    if (folder && open) {
+      setFormData({
+        name: folder.name || '',
+        parent_id: folder.parent_id || null,
+        image_url: folder.image_url || '',
+        order_index: folder.order_index || 0
+      })
+      setImagePreview(folder.image_url || '')
+    } else if (!folder && open) {
+      // Reset form for new folder creation
+      resetForm()
+    }
+  }, [folder, open])
 
   const createMutation = useMutation({
     mutationFn: createFolder,
@@ -86,8 +104,8 @@ export default function FolderForm({ folder, sectionId, open, onOpenChange, onSu
     // Upload image if selected
     if (imageFile) {
       try {
-        const { url } = await uploadImage(imageFile, 'folders')
-        finalFormData.image_url = url
+        const imageUrl = await uploadImage(imageFile, 'folders')
+        finalFormData.image_url = imageUrl
         
         // Delete old image if updating
         if (isEditing && folder.image_url) {
@@ -118,14 +136,18 @@ export default function FolderForm({ folder, sectionId, open, onOpenChange, onSu
   }
 
   const renderFolderOptions = (folders, level = 0) => {
-    return folders.map(folder => (
-      <div key={folder.id}>
-        <option value={folder.id}>
+    const options = []
+    folders.forEach(folder => {
+      options.push(
+        <option key={folder.id} value={folder.id}>
           {'  '.repeat(level) + folder.name}
         </option>
-        {folder.children && renderFolderOptions(folder.children, level + 1)}
-      </div>
-    ))
+      )
+      if (folder.children && folder.children.length > 0) {
+        options.push(...renderFolderOptions(folder.children, level + 1))
+      }
+    })
+    return options
   }
 
   const isLoading = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
@@ -162,24 +184,18 @@ export default function FolderForm({ folder, sectionId, open, onOpenChange, onSu
             </select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium mb-2 block">Imagen</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full px-3 py-2 border border-input rounded-md bg-background"
-            />
-            {imagePreview && (
-              <div className="mt-2">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-32 object-cover rounded-md"
-                />
-              </div>
-            )}
-          </div>
+          <ImageUpload
+            currentImage={folder?.image_url}
+            onImageSelect={(file) => {
+              setImageFile(file)
+              setImagePreview(URL.createObjectURL(file))
+            }}
+            onImageRemove={() => {
+              setImageFile(null)
+              setImagePreview('')
+            }}
+            disabled={isLoading}
+          />
 
           <div>
             <label className="text-sm font-medium mb-2 block">Orden</label>

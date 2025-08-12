@@ -1,4 +1,6 @@
 import { supabase, IMAGES_BUCKET } from './supabaseClient'
+import { uploadImage, deleteImage, getSectionImagePath } from './imageUtils'
+import { generateSlug } from './utils'
 
 // ===== SECTIONS =====
 export const getSections = async () => {
@@ -22,6 +24,28 @@ export const createSection = async (section) => {
   return data
 }
 
+export const createSectionWithImage = async (sectionData, imageFile) => {
+  try {
+    // First create the section
+    const section = await createSection(sectionData)
+    
+    // If image provided, upload it
+    if (imageFile) {
+      const imagePath = getSectionImagePath(section.id, imageFile.name)
+      const imageUrl = await uploadImage(imageFile, imagePath)
+      
+      // Update section with image URL
+      const updatedSection = await updateSection(section.id, { image_url: imageUrl })
+      return updatedSection
+    }
+    
+    return section
+  } catch (error) {
+    console.error('Error creating section with image:', error)
+    throw error
+  }
+}
+
 export const updateSection = async (id, updates) => {
   const { data, error } = await supabase
     .from('sections')
@@ -34,13 +58,53 @@ export const updateSection = async (id, updates) => {
   return data
 }
 
+export const updateSectionWithImage = async (id, updates, imageFile) => {
+  try {
+    // If new image provided, upload it
+    if (imageFile) {
+      const imagePath = getSectionImagePath(id, imageFile.name)
+      const imageUrl = await uploadImage(imageFile, imagePath)
+      updates.image_url = imageUrl
+    }
+    
+    return await updateSection(id, updates)
+  } catch (error) {
+    console.error('Error updating section with image:', error)
+    throw error
+  }
+}
+
 export const deleteSection = async (id) => {
-  const { error } = await supabase
-    .from('sections')
-    .delete()
-    .eq('id', id)
-  
-  if (error) throw error
+  try {
+    // Get section data to check if it has an image
+    const { data: section } = await supabase
+      .from('sections')
+      .select('image_url')
+      .eq('id', id)
+      .single()
+    
+    // Delete the section from database
+    const { error } = await supabase
+      .from('sections')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
+    
+    // Clean up image from storage if it exists
+    if (section?.image_url) {
+      try {
+        const imagePath = getSectionImagePath(id, 'image.webp')
+        await deleteImage(imagePath)
+      } catch (imageError) {
+        console.warn('Could not delete section image:', imageError)
+        // Don't throw - section deletion succeeded
+      }
+    }
+  } catch (error) {
+    console.error('Error deleting section:', error)
+    throw error
+  }
 }
 
 // ===== FOLDERS =====
@@ -267,32 +331,7 @@ export const searchAll = async (query) => {
   }
 }
 
-// ===== IMAGE UPLOAD =====
-export const uploadImage = async (file, path) => {
-  const fileExt = file.name.split('.').pop()
-  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-  const filePath = path ? `${path}/${fileName}` : fileName
-  
-  const { data, error } = await supabase.storage
-    .from(IMAGES_BUCKET)
-    .upload(filePath, file)
-  
-  if (error) throw error
-  
-  const { data: { publicUrl } } = supabase.storage
-    .from(IMAGES_BUCKET)
-    .getPublicUrl(filePath)
-  
-  return { path: filePath, url: publicUrl }
-}
 
-export const deleteImage = async (path) => {
-  const { error } = await supabase.storage
-    .from(IMAGES_BUCKET)
-    .remove([path])
-  
-  if (error) throw error
-}
 
 // ===== REORDERING =====
 export const reorderSections = async (sections) => {

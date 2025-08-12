@@ -5,6 +5,8 @@ import { useFavorites } from '../hooks/useFavorites'
 import { useRecent } from '../hooks/useRecent'
 import { useToast } from '../hooks/useToast'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
+import SectionForm from '../components/sections/SectionForm'
+import CardForm from '../components/cards/CardForm'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +21,7 @@ import {
   CardTitle,
 } from '../components/ui/card'
 import { Button } from '../components/ui/button'
-import { Heart, Clock, Folder, ArrowRight, Trash2, MoreVertical } from 'lucide-react'
+import { Heart, Clock, Folder, ArrowRight, Trash2, MoreVertical, Edit } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export default function Home({ favorites, recent }) {
@@ -29,6 +31,10 @@ export default function Home({ favorites, recent }) {
   // State for delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, section: null })
   const [deleteCardConfirm, setDeleteCardConfirm] = useState({ open: false, card: null })
+  
+  // State for edit modals
+  const [editSection, setEditSection] = useState({ open: false, section: null })
+  const [editCard, setEditCard] = useState({ open: false, card: null })
 
   // Fetch sections
   const { data: sections = [] } = useQuery({
@@ -88,6 +94,14 @@ export default function Home({ favorites, recent }) {
     setDeleteConfirm({ open: true, section })
   }
 
+  const handleEditSection = (section) => {
+    setEditSection({ open: true, section })
+  }
+
+  const handleEditCard = (card) => {
+    setEditCard({ open: true, card })
+  }
+
   const confirmDeleteSection = () => {
     if (deleteConfirm.section) {
       deleteSectionMutation.mutate(deleteConfirm.section.id)
@@ -126,17 +140,44 @@ export default function Home({ favorites, recent }) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {sections.map((section) => (
-                <Card key={section.id} className="group transition-all duration-200 hover:shadow-lg hover:scale-[1.02] h-full relative">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <Link to={`/s/${section.id}`} className="flex items-center space-x-3 flex-1">
-                        {section.icon ? (
-                          <span className="text-2xl">{section.icon}</span>
-                        ) : (
-                          <Folder className="h-6 w-6 text-muted-foreground" />
+                <Card key={section.id} className="group transition-all duration-200 hover:shadow-lg hover:scale-[1.02] h-full relative overflow-hidden">
+                  {/* Cover Image */}
+                  {section.image_url ? (
+                    <div className="relative h-32 overflow-hidden">
+                      <img 
+                        src={section.image_url} 
+                        alt={section.name}
+                        className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                      {section.color && (
+                        <div 
+                          className="absolute top-2 right-2 w-3 h-3 rounded-full border-2 border-white"
+                          style={{ backgroundColor: section.color }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div 
+                      className="h-32 flex items-center justify-center"
+                      style={{ backgroundColor: section.color || '#f3f4f6' }}
+                    >
+                      {section.icon ? (
+                        <span className="text-4xl opacity-80">{section.icon}</span>
+                      ) : (
+                        <Folder className="h-12 w-12 text-white/80" />
+                      )}
+                    </div>
+                  )}
+                  
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <Link to={`/s/${section.id}`} className="flex items-center space-x-2 flex-1 min-w-0">
+                        {!section.image_url && section.icon && (
+                          <span className="text-lg flex-shrink-0">{section.icon}</span>
                         )}
-                        <div>
-                          <h3 className="font-semibold text-lg">{section.name}</h3>
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-base truncate">{section.name}</h3>
                         </div>
                       </Link>
                       
@@ -157,6 +198,15 @@ export default function Home({ favorites, recent }) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleEditSection(section)
+                              }}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Section
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -216,6 +266,7 @@ export default function Home({ favorites, recent }) {
               favorites={favorites}
               recent={recent}
               onDeleteCard={handleDeleteCard}
+              onEditCard={handleEditCard}
             />
           </div>
         )}
@@ -253,6 +304,29 @@ export default function Home({ favorites, recent }) {
         description={`Are you sure you want to delete "${deleteCardConfirm.card?.title}"? This action cannot be undone.`}
         confirmText="Delete"
         onConfirm={confirmDeleteCard}
+      />
+
+      {/* Edit Section Modal */}
+      <SectionForm
+        section={editSection.section}
+        open={editSection.open}
+        onOpenChange={(open) => setEditSection({ open, section: null })}
+        onSuccess={() => {
+          setEditSection({ open: false, section: null })
+          toast.success('Section updated successfully')
+        }}
+      />
+
+      {/* Edit Card Modal */}
+      <CardForm
+        card={editCard.card}
+        sectionId={editCard.card?.section_id}
+        open={editCard.open}
+        onOpenChange={(open) => setEditCard({ open, card: null })}
+        onSuccess={() => {
+          setEditCard({ open: false, card: null })
+          toast.success('Card updated successfully')
+        }}
       />
     </div>
   )

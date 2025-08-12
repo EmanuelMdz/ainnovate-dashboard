@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import ImageUpload from '@/components/ui/ImageUpload'
 import { X } from 'lucide-react'
 import { 
   createCard, 
@@ -11,10 +12,9 @@ import {
   deleteCard, 
   getFoldersBySection, 
   getCardFolders,
-  updateCardFolders,
-  uploadImage, 
-  deleteImage 
+  updateCardFolders
 } from '@/lib/queries'
+import { uploadImage, deleteImage } from '@/lib/imageUtils'
 import { buildFolderTree, isValidUrl } from '@/lib/utils'
 
 export default function CardForm({ card, sectionId, open, onOpenChange, onSuccess }) {
@@ -50,6 +50,26 @@ export default function CardForm({ card, sectionId, open, onOpenChange, onSucces
     queryFn: () => getCardFolders(card.id),
     enabled: !!card?.id && open
   })
+
+  // Update form data when card prop changes (for editing)
+  useEffect(() => {
+    if (card && open) {
+      setFormData({
+        title: card.title || '',
+        description: card.description || '',
+        url: card.url || '',
+        image_url: card.image_url || '',
+        type: card.type || 'link',
+        tags: card.tags || [],
+        is_favorite: card.is_favorite || false,
+        order_index: card.order_index || 0
+      })
+      setImagePreview(card.image_url || '')
+    } else if (!card && open) {
+      // Reset form for new card creation
+      resetForm()
+    }
+  }, [card, open])
 
   useEffect(() => {
     if (cardFolders.length > 0) {
@@ -164,8 +184,8 @@ export default function CardForm({ card, sectionId, open, onOpenChange, onSucces
     // Upload image if selected
     if (imageFile) {
       try {
-        const { url } = await uploadImage(imageFile, 'cards')
-        finalFormData.image_url = url
+        const imageUrl = await uploadImage(imageFile, 'cards')
+        finalFormData.image_url = imageUrl
         
         // Delete old image if updating
         if (isEditing && card.image_url) {
@@ -273,24 +293,18 @@ export default function CardForm({ card, sectionId, open, onOpenChange, onSucces
             />
           </div>
 
-          <div>
-            <label className="text-sm font-medium mb-2 block">Imagen</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full px-3 py-2 border border-input rounded-md bg-background"
-            />
-            {imagePreview && (
-              <div className="mt-2">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-32 object-cover rounded-md"
-                />
-              </div>
-            )}
-          </div>
+          <ImageUpload
+            currentImage={card?.image_url}
+            onImageSelect={(file) => {
+              setImageFile(file)
+              setImagePreview(URL.createObjectURL(file))
+            }}
+            onImageRemove={() => {
+              setImageFile(null)
+              setImagePreview('')
+            }}
+            disabled={isLoading}
+          />
 
           <div>
             <label className="text-sm font-medium mb-2 block">Tags</label>
