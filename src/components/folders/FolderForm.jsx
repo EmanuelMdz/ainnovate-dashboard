@@ -62,11 +62,21 @@ export default function FolderForm({ folder, sectionId, open, onOpenChange, onSu
 
   const updateMutation = useMutation({
     mutationFn: ({ id, updates, imageFile }) => updateFolderWithImage(id, updates, imageFile),
-    onSuccess: () => {
-      // Invalidate all folder-related queries to ensure UI updates everywhere
-      queryClient.invalidateQueries({ queryKey: ['folders'] }) // All folder queries
-      queryClient.invalidateQueries({ queryKey: ['cards-in-tree'] }) // Folder view cards
-      queryClient.invalidateQueries({ queryKey: ['search-cards'] }) // Search results that might include folder context
+    onSuccess: (updatedFolder) => {
+      console.log('🔄 Simple cache invalidation for updated folder:', updatedFolder)
+      
+      // Simple approach: invalidate the direct folder query
+      if (updatedFolder?.id) {
+        console.log('🎯 Invalidating direct folder query:', ['folder', updatedFolder.id])
+        queryClient.invalidateQueries({ queryKey: ['folder', updatedFolder.id] })
+        queryClient.refetchQueries({ queryKey: ['folder', updatedFolder.id] })
+      }
+      
+      // Also invalidate general folder queries for breadcrumb and other uses
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
+      
+      console.log('✅ Simple cache invalidation completed')
+      
       onSuccess?.()
       onOpenChange(false)
     }

@@ -132,6 +132,8 @@ export const createFolder = async (folder) => {
 }
 
 export const updateFolder = async (id, updates) => {
+  console.log('🗃️ updateFolder called with:', { id, updates })
+  
   const { data, error } = await supabase
     .from('folders')
     .update(updates)
@@ -139,7 +141,14 @@ export const updateFolder = async (id, updates) => {
     .select()
     .single()
   
-  if (error) throw error
+  console.log('🗃️ Database response:', { data, error })
+  
+  if (error) {
+    console.error('❌ Database error:', error)
+    throw error
+  }
+  
+  console.log('✅ Database update successful:', data)
   return data
 }
 
@@ -167,16 +176,26 @@ export const createFolderWithImage = async (folder, imageFile) => {
 
 export const updateFolderWithImage = async (id, updates, imageFile) => {
   try {
+    console.log('🔍 updateFolderWithImage called with:', { id, updates, imageFile })
+    
     // If new image provided, upload it with unique path
     if (imageFile) {
+      console.log('📁 Processing image file:', imageFile.name)
       const imagePath = getFolderImagePath(id, imageFile.name)
+      console.log('📍 Generated image path:', imagePath)
+      
       const imageUrl = await uploadImage(imageFile, imagePath)
+      console.log('✅ Image uploaded successfully, URL:', imageUrl)
+      
       updates.image_url = imageUrl
+      console.log('📝 Updates with image URL:', updates)
     }
     
-    return await updateFolder(id, updates)
+    const result = await updateFolder(id, updates)
+    console.log('💾 Database update result:', result)
+    return result
   } catch (error) {
-    console.error('Error updating folder with image:', error)
+    console.error('❌ Error updating folder with image:', error)
     throw error
   }
 }

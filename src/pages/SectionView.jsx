@@ -246,16 +246,19 @@ export default function SectionView({ favorites, recent }) {
                 <Card key={folder.id} className="group transition-all duration-200 hover:shadow-lg hover:scale-[1.02] h-full relative">
                   <CardContent className="p-6">
                     {/* Folder Image */}
-                    {folder.image_url && (
-                      <div className="aspect-video w-full mb-4 overflow-hidden rounded-md bg-muted">
-                        <img
-                          src={folder.image_url}
-                          alt={folder.name}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
+                    {/* Folder Cover Image - Direct Supabase Storage URL */}
+                    <div className="aspect-video w-full mb-4 overflow-hidden rounded-md bg-muted">
+                      <img
+                        key={`folder-card-${folder.id}-${Date.now()}`}
+                        src={`https://krdrqfibrvndkfaenasb.supabase.co/storage/v1/object/public/dashboard-images/folders/${folder.id}.webp?t=${Date.now()}`}
+                        alt={folder.name}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                      />
+                    </div>
                     
                     <div className="flex items-center justify-between mb-4">
                       <Link to={`/s/${sectionId}/f/${folder.id}`} className="flex items-center space-x-3 flex-1">

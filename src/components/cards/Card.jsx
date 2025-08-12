@@ -91,7 +91,7 @@ export default function Card({ card, favorites, recent, className, onDelete, onE
             ) : (
               <span className="text-lg flex-shrink-0">{getTypeIcon(card.type)}</span>
             )}
-            <h3 className="font-semibold text-sm truncate">{card.title}</h3>
+            <h3 className="font-semibold text-sm leading-tight">{card.title}</h3>
           </div>
           
           {/* Action buttons - show on hover */}

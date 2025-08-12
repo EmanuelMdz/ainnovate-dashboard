@@ -10,6 +10,7 @@ import DraggableCardGrid from '@/components/cards/DraggableCardGrid'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import CardForm from '@/components/cards/CardForm'
 import { getSections, getFoldersBySection, getCardsInTree, reorderCards, deleteCard } from '@/lib/queries'
+import { supabase } from '@/lib/supabaseClient'
 import { buildFolderTree, debounce } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 
@@ -30,10 +31,26 @@ export default function FolderView({ favorites, recent }) {
   })
 
   // Fetch folders for breadcrumb navigation
-  const { data: folders = [] } = useQuery({
+  const { data: folders = [], refetch: refetchFolders } = useQuery({
     queryKey: ['folders', sectionId],
     queryFn: () => getFoldersBySection(sectionId),
     enabled: !!sectionId
+  })
+
+  // Simple direct folder fetch for current folder
+  const { data: currentFolder } = useQuery({
+    queryKey: ['folder', folderId],
+    queryFn: async () => {
+      if (!folderId) return null
+      const { data, error } = await supabase
+        .from('folders')
+        .select('*')
+        .eq('id', folderId)
+        .single()
+      if (error) throw error
+      return data
+    },
+    enabled: !!folderId
   })
 
   // Fetch cards in this folder tree
@@ -67,7 +84,25 @@ export default function FolderView({ favorites, recent }) {
   })
 
   const section = sections.find(s => s.id === sectionId)
-  const folder = folders.find(f => f.id === folderId)
+  // Use direct folder fetch instead of searching through folders array
+  const folder = currentFolder || folders.find(f => f.id === folderId)
+  
+  // Debug logging for folder data
+  console.log('🔍 FolderView - Current folder data:', folder)
+  console.log('🔍 FolderView - Direct folder data:', currentFolder)
+  console.log('🔍 FolderView - Folder image_url:', folder?.image_url)
+  
+  // Track folder changes
+  useEffect(() => {
+    if (folder) {
+      console.log('🔄 FolderView - Folder data changed:', {
+        id: folder.id,
+        name: folder.name,
+        image_url: folder.image_url,
+        hasImage: !!folder.image_url
+      })
+    }
+  }, [folder, folder?.image_url, currentFolder])
 
   // Build breadcrumb path
   const getBreadcrumbPath = () => {
@@ -193,18 +228,20 @@ export default function FolderView({ favorites, recent }) {
           </p>
         </div>
 
-        {/* Folder Image */}
-        {folder.image_url && (
-          <div className="mb-8">
-            <div className="aspect-video w-full max-w-md overflow-hidden rounded-lg bg-muted">
-              <img
-                src={folder.image_url}
-                alt={folder.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
+        {/* Folder Image - SIMPLE APPROACH */}
+        <div className="mb-8">
+          <div className="aspect-video w-full max-w-md overflow-hidden rounded-lg bg-muted">
+            <img
+              key={`folder-image-${folderId}-${Date.now()}`}
+              src={`https://krdrqfibrvndkfaenasb.supabase.co/storage/v1/object/public/dashboard-images/folders/${folderId}.webp?t=${Date.now()}`}
+              alt={folder?.name || 'Folder'}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none'
+              }}
+            />
           </div>
-        )}
+        </div>
 
         {/* Filters and Search */}
         <div className="mb-6">
@@ -233,60 +270,56 @@ export default function FolderView({ favorites, recent }) {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total Cards</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{displayCards.length}</div>
-            </CardContent>
-          </Card>
+        {/* Main Content with Statistics */}
+        <div className="relative">
+          {/* Statistics positioned in top right */}
+          <div className="absolute top-0 right-0 z-10 space-y-3 w-48">
+            {/* Total Cards */}
+            <div className="bg-muted/50 rounded-lg p-3 text-center">
+              <div className="text-lg font-semibold text-foreground">{displayCards.length}</div>
+              <div className="text-xs text-muted-foreground">Total Cards</div>
+            </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Favorites</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            {/* Favorites */}
+            <div className="bg-muted/50 rounded-lg p-3 text-center">
+              <div className="text-lg font-semibold text-foreground">
                 {displayCards.filter(card => favorites.isFavorite(card.card_id || card.id)).length}
               </div>
-            </CardContent>
-          </Card>
+              <div className="text-xs text-muted-foreground">Favorites</div>
+            </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Types</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            {/* Types */}
+            <div className="bg-muted/50 rounded-lg p-3 text-center">
+              <div className="text-lg font-semibold text-foreground">
                 {new Set(displayCards.map(card => card.type)).size}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="text-xs text-muted-foreground">Types</div>
+            </div>
+          </div>
 
-        {/* Cards Grid */}
-        {canReorder ? (
-          <DraggableCardGrid
-            cards={cardsState}
-            setCards={setCardsState}
-            onReorder={handleReorder}
-            favorites={favorites}
-            recent={recent}
-            onDeleteCard={handleDeleteCard}
-            onEditCard={handleEditCard}
-          />
-        ) : (
-          <CardGrid
-            cards={displayCards}
-            favorites={favorites}
-            recent={recent}
-            onDeleteCard={handleDeleteCard}
-            onEditCard={handleEditCard}
-          />
-        )}
+          {/* Cards Grid - Main Content */}
+          <div className="pr-52">
+            {canReorder ? (
+              <DraggableCardGrid
+                cards={cardsState}
+                setCards={setCardsState}
+                onReorder={handleReorder}
+                favorites={favorites}
+                recent={recent}
+                onDeleteCard={handleDeleteCard}
+                onEditCard={handleEditCard}
+              />
+            ) : (
+              <CardGrid
+                cards={displayCards}
+                favorites={favorites}
+                recent={recent}
+                onDeleteCard={handleDeleteCard}
+                onEditCard={handleEditCard}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
