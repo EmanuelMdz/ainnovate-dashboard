@@ -1,0 +1,225 @@
+import { useState } from 'react'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { createFolder, updateFolder, deleteFolder, getFoldersBySection, uploadImage, deleteImage } from '@/lib/queries'
+import { buildFolderTree } from '@/lib/utils'
+
+export default function FolderForm({ folder, sectionId, open, onOpenChange, onSuccess }) {
+  const queryClient = useQueryClient()
+  const isEditing = !!folder
+
+  const [formData, setFormData] = useState({
+    name: folder?.name || '',
+    parent_id: folder?.parent_id || null,
+    image_url: folder?.image_url || '',
+    order_index: folder?.order_index || 0
+  })
+
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(folder?.image_url || '')
+
+  // Fetch folders for parent selection
+  const { data: folders = [] } = useQuery({
+    queryKey: ['folders', sectionId],
+    queryFn: () => getFoldersBySection(sectionId),
+    enabled: !!sectionId && open
+  })
+
+  const folderTree = buildFolderTree(folders.filter(f => f.id !== folder?.id)) // Exclude current folder
+
+  const createMutation = useMutation({
+    mutationFn: createFolder,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['folders', sectionId])
+      onSuccess?.()
+      onOpenChange(false)
+      resetForm()
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, ...data }) => updateFolder(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['folders', sectionId])
+      onSuccess?.()
+      onOpenChange(false)
+    }
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteFolder,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['folders', sectionId])
+      onSuccess?.()
+      onOpenChange(false)
+    }
+  })
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      parent_id: null,
+      image_url: '',
+      order_index: 0
+    })
+    setImageFile(null)
+    setImagePreview('')
+  }
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onload = (e) => setImagePreview(e.target.result)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    let finalFormData = { ...formData, section_id: sectionId }
+
+    // Upload image if selected
+    if (imageFile) {
+      try {
+        const { url } = await uploadImage(imageFile, 'folders')
+        finalFormData.image_url = url
+        
+        // Delete old image if updating
+        if (isEditing && folder.image_url) {
+          const oldPath = folder.image_url.split('/').pop()
+          await deleteImage(`folders/${oldPath}`)
+        }
+      } catch (error) {
+        console.error('Error uploading image:', error)
+        // Continue without image
+      }
+    }
+
+    if (isEditing) {
+      updateMutation.mutate({ id: folder.id, ...finalFormData })
+    } else {
+      createMutation.mutate(finalFormData)
+    }
+  }
+
+  const handleDelete = () => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta carpeta? Esto también eliminará todas las subcarpetas.')) {
+      deleteMutation.mutate(folder.id)
+    }
+  }
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const renderFolderOptions = (folders, level = 0) => {
+    return folders.map(folder => (
+      <div key={folder.id}>
+        <option value={folder.id}>
+          {'  '.repeat(level) + folder.name}
+        </option>
+        {folder.children && renderFolderOptions(folder.children, level + 1)}
+      </div>
+    ))
+  }
+
+  const isLoading = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {isEditing ? 'Editar Carpeta' : 'Nueva Carpeta'}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Nombre</label>
+            <Input
+              value={formData.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              placeholder="Nombre de la carpeta"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Carpeta padre</label>
+            <select
+              value={formData.parent_id || ''}
+              onChange={(e) => handleChange('parent_id', e.target.value || null)}
+              className="w-full px-3 py-2 border border-input rounded-md bg-background"
+            >
+              <option value="">Sin carpeta padre (raíz)</option>
+              {renderFolderOptions(folderTree)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Imagen</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="w-full px-3 py-2 border border-input rounded-md bg-background"
+            />
+            {imagePreview && (
+              <div className="mt-2">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-32 object-cover rounded-md"
+                />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Orden</label>
+            <Input
+              type="number"
+              value={formData.order_index}
+              onChange={(e) => handleChange('order_index', parseInt(e.target.value) || 0)}
+              min="0"
+            />
+          </div>
+
+          <DialogFooter className="flex justify-between">
+            <div>
+              {isEditing && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  disabled={isLoading}
+                >
+                  Eliminar
+                </Button>
+              )}
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Crear')}
+              </Button>
+            </div>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
