@@ -135,7 +135,11 @@ export default function Card({ card, favorites, recent, className, onDelete, onE
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link to={`/c/${cardId}`} className="w-full">
+                  <Link 
+                    to={`/c/${cardId}`} 
+                    className="w-full"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     View Details
                   </Link>
