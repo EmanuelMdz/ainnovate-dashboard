@@ -1,10 +1,5 @@
 # Database Schema - Ainnovate Dashboard
 
-## Supabase Configuration
-- **URL**: `https://krdrqfibrvndkfaenasb.supabase.co`
-- **Anon Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyZHJxZmlicnZuZGtmYWVuYXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwMDA1NjcsImV4cCI6MjA3MDU3NjU2N30.7hXeN_nFG7TL3Q8ErF3Zu9LkFNVW5cGwJHYaXQQCX0c`
-- **Service Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyZHJxZmlicnZuZGtmYWVuYXNiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTAwMDU2NywiZXhwIjoyMDcwNTc2NTY3fQ.2fiD9NOJoC6K6Zy2sLYm79joqX0xpuZt0QgF4im8lm8`
-
 ## Tables Structure
 
 ### 1. sections
