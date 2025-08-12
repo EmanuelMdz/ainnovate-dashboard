@@ -15,6 +15,7 @@ export default function SectionForm({ section, open, onOpenChange, onSuccess }) 
 
   const [formData, setFormData] = useState({
     name: section?.name || '',
+    description: section?.description || '',
     icon: section?.icon || '',
     color: section?.color || generateRandomColor(),
     order_index: section?.order_index || 0
@@ -28,6 +29,7 @@ export default function SectionForm({ section, open, onOpenChange, onSuccess }) 
     if (section && open) {
       setFormData({
         name: section.name || '',
+        description: section.description || '',
         icon: section.icon || '',
         color: section.color || generateRandomColor(),
         order_index: section.order_index || 0
@@ -97,6 +99,7 @@ export default function SectionForm({ section, open, onOpenChange, onSuccess }) 
   const resetForm = () => {
     setFormData({
       name: '',
+      description: '',
       icon: '',
       color: generateRandomColor(),
       order_index: 0
@@ -152,6 +155,15 @@ export default function SectionForm({ section, open, onOpenChange, onSuccess }) 
               onChange={(e) => handleChange('name', e.target.value)}
               placeholder="Nombre de la sección"
               required
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Descripción</label>
+            <Input
+              value={formData.description}
+              onChange={(e) => handleChange('description', e.target.value)}
+              placeholder="Descripción de la sección"
             />
           </div>
 

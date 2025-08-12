@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import ImageUpload from '@/components/ui/ImageUpload'
-import { createFolder, updateFolder, deleteFolder, getFoldersBySection } from '@/lib/queries'
+import { createFolder, updateFolder, createFolderWithImage, updateFolderWithImage, deleteFolder, getFoldersBySection } from '@/lib/queries'
 import { uploadImage, deleteImage } from '@/lib/imageUtils'
 import { buildFolderTree } from '@/lib/utils'
 
@@ -48,9 +48,12 @@ export default function FolderForm({ folder, sectionId, open, onOpenChange, onSu
   }, [folder, open])
 
   const createMutation = useMutation({
-    mutationFn: createFolder,
+    mutationFn: ({ folderData, imageFile }) => createFolderWithImage(folderData, imageFile),
     onSuccess: () => {
-      queryClient.invalidateQueries(['folders', sectionId])
+      // Invalidate all folder-related queries to ensure UI updates everywhere
+      queryClient.invalidateQueries({ queryKey: ['folders'] }) // All folder queries
+      queryClient.invalidateQueries({ queryKey: ['cards-in-tree'] }) // Folder view cards
+      queryClient.invalidateQueries({ queryKey: ['search-cards'] }) // Search results that might include folder context
       onSuccess?.()
       onOpenChange(false)
       resetForm()
@@ -58,9 +61,12 @@ export default function FolderForm({ folder, sectionId, open, onOpenChange, onSu
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }) => updateFolder(id, data),
+    mutationFn: ({ id, updates, imageFile }) => updateFolderWithImage(id, updates, imageFile),
     onSuccess: () => {
-      queryClient.invalidateQueries(['folders', sectionId])
+      // Invalidate all folder-related queries to ensure UI updates everywhere
+      queryClient.invalidateQueries({ queryKey: ['folders'] }) // All folder queries
+      queryClient.invalidateQueries({ queryKey: ['cards-in-tree'] }) // Folder view cards
+      queryClient.invalidateQueries({ queryKey: ['search-cards'] }) // Search results that might include folder context
       onSuccess?.()
       onOpenChange(false)
     }
@@ -69,7 +75,10 @@ export default function FolderForm({ folder, sectionId, open, onOpenChange, onSu
   const deleteMutation = useMutation({
     mutationFn: deleteFolder,
     onSuccess: () => {
-      queryClient.invalidateQueries(['folders', sectionId])
+      // Invalidate all folder-related queries to ensure UI updates everywhere
+      queryClient.invalidateQueries({ queryKey: ['folders'] }) // All folder queries
+      queryClient.invalidateQueries({ queryKey: ['cards-in-tree'] }) // Folder view cards
+      queryClient.invalidateQueries({ queryKey: ['search-cards'] }) // Search results that might include folder context
       onSuccess?.()
       onOpenChange(false)
     }
@@ -101,27 +110,17 @@ export default function FolderForm({ folder, sectionId, open, onOpenChange, onSu
     
     let finalFormData = { ...formData, section_id: sectionId }
 
-    // Upload image if selected
-    if (imageFile) {
-      try {
-        const imageUrl = await uploadImage(imageFile, 'folders')
-        finalFormData.image_url = imageUrl
-        
-        // Delete old image if updating
-        if (isEditing && folder.image_url) {
-          const oldPath = folder.image_url.split('/').pop()
-          await deleteImage(`folders/${oldPath}`)
-        }
-      } catch (error) {
-        console.error('Error uploading image:', error)
-        // Continue without image
-      }
-    }
-
     if (isEditing) {
-      updateMutation.mutate({ id: folder.id, ...finalFormData })
+      updateMutation.mutate({ 
+        id: folder.id, 
+        updates: finalFormData, 
+        imageFile: imageFile 
+      })
     } else {
-      createMutation.mutate(finalFormData)
+      createMutation.mutate({ 
+        folderData: finalFormData, 
+        imageFile: imageFile 
+      })
     }
   }
 

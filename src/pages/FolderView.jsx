@@ -48,8 +48,16 @@ export default function FolderView({ favorites, recent }) {
   // Delete card mutation
   const deleteCardMutation = useMutation({
     mutationFn: deleteCard,
-    onSuccess: () => {
+    onSuccess: (data, cardId) => {
+      // Remove from recent items in localStorage
+      recent.removeFromRecent(cardId)
+      
+      // Invalidate all card-related queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ['cards-in-tree', folderId] })
+      queryClient.invalidateQueries({ queryKey: ['cards-without-folder', sectionId] })
+      queryClient.invalidateQueries({ queryKey: ['cards', sectionId] })
+      queryClient.invalidateQueries({ queryKey: ['search-cards'] }) // For search results
+      queryClient.invalidateQueries({ queryKey: ['favorite-cards'] }) // For favorites
       toast.success('Card deleted successfully')
       setDeleteCardConfirm({ open: false, card: null })
     },
@@ -101,10 +109,15 @@ export default function FolderView({ favorites, recent }) {
     debouncedSearch(e.target.value)
   }
 
+  // Reset cards state when folder changes
+  useEffect(() => {
+    setCardsState([])
+  }, [folderId])
+
   // Sync local state for DnD when we can reorder
   const canReorder = !searchQuery && !showFavoritesOnly
   useEffect(() => {
-    if (canReorder && cards.length > 0) {
+    if (canReorder) {
       setCardsState(cards)
     }
   }, [canReorder, cards])

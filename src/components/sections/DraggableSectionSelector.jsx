@@ -65,7 +65,14 @@ export default function DraggableSectionSelector({
                                 </span>
                               </div>
                             )}
-                            <span className="truncate flex-1">{section.name}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className="truncate block">{section.name}</span>
+                              {section.description && (
+                                <span className="text-xs text-muted-foreground truncate block">
+                                  {section.description}
+                                </span>
+                              )}
+                            </div>
                             {section.color && !section.image_url && (
                               <div 
                                 className="w-2 h-2 rounded-full flex-shrink-0"

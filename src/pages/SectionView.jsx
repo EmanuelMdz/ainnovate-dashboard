@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { Search, Filter, Heart, Folder, FolderOpen, ArrowRight, Trash2, MoreVertical, Edit } from 'lucide-react'
@@ -66,8 +66,16 @@ export default function SectionView({ favorites, recent }) {
   // Delete card mutation
   const deleteCardMutation = useMutation({
     mutationFn: deleteCard,
-    onSuccess: () => {
+    onSuccess: (data, cardId) => {
+      // Remove from recent items in localStorage
+      recent.removeFromRecent(cardId)
+      
+      // Invalidate all card-related queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ['cards-without-folder', sectionId] })
+      queryClient.invalidateQueries({ queryKey: ['cards', sectionId] })
+      queryClient.invalidateQueries({ queryKey: ['cards-in-tree'] }) // For folder views
+      queryClient.invalidateQueries({ queryKey: ['search-cards'] }) // For search results
+      queryClient.invalidateQueries({ queryKey: ['favorite-cards'] }) // For favorites
       toast.success('Card deleted successfully')
       setDeleteCardConfirm({ open: false, card: null })
     },
@@ -90,16 +98,15 @@ export default function SectionView({ favorites, recent }) {
     enabled: !!searchQuery && searchQuery.length > 2
   })
 
-  // Determine which cards to show
-  let displayCards = searchQuery ? searchResults : cardsWithoutFolder
+  // Determine base cards to show - memoized to prevent infinite loops
+  const baseCards = useMemo(() => {
+    return searchQuery ? searchResults : cardsWithoutFolder
+  }, [searchQuery, searchResults, cardsWithoutFolder])
 
-  // Apply filters
+  // Apply filters (not memoized to avoid favorites dependency issues)
+  let displayCards = baseCards
   if (showFavoritesOnly) {
     displayCards = displayCards.filter(card => favorites.isFavorite(card.id))
-  }
-
-  if (showWithoutFolderOnly && !searchQuery) {
-    // Already showing cards without folder
   }
 
   const debouncedSearch = debounce((value) => {
@@ -114,9 +121,9 @@ export default function SectionView({ favorites, recent }) {
   const canReorder = !searchQuery && !showFavoritesOnly
   useEffect(() => {
     if (canReorder) {
-      setCardsState(displayCards)
+      setCardsState(baseCards)
     }
-  }, [canReorder, displayCards])
+  }, [canReorder, baseCards])
 
   const handleReorder = async (newOrder) => {
     try {

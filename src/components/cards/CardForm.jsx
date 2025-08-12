@@ -9,6 +9,8 @@ import { X } from 'lucide-react'
 import { 
   createCard, 
   updateCard, 
+  createCardWithImage,
+  updateCardWithImage,
   deleteCard, 
   getFoldersBySection, 
   getCardFolders,
@@ -80,7 +82,7 @@ export default function CardForm({ card, sectionId, open, onOpenChange, onSucces
   const folderTree = buildFolderTree(folders)
 
   const createMutation = useMutation({
-    mutationFn: createCard,
+    mutationFn: ({ cardData, imageFile }) => createCardWithImage(cardData, imageFile),
     onSuccess: async (newCard) => {
       // Update card folders
       if (selectedFolders.length > 0) {
@@ -96,7 +98,7 @@ export default function CardForm({ card, sectionId, open, onOpenChange, onSucces
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }) => updateCard(id, data),
+    mutationFn: ({ id, updates, imageFile }) => updateCardWithImage(id, updates, imageFile),
     onSuccess: async () => {
       // Update card folders
       await updateCardFolders(card.id, selectedFolders)
@@ -112,8 +114,12 @@ export default function CardForm({ card, sectionId, open, onOpenChange, onSucces
   const deleteMutation = useMutation({
     mutationFn: deleteCard,
     onSuccess: () => {
-      queryClient.invalidateQueries(['cards-without-folder', sectionId])
-      queryClient.invalidateQueries(['cards', sectionId])
+      // Invalidate all card-related queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ['cards-without-folder', sectionId] })
+      queryClient.invalidateQueries({ queryKey: ['cards', sectionId] })
+      queryClient.invalidateQueries({ queryKey: ['cards-in-tree'] }) // For folder views
+      queryClient.invalidateQueries({ queryKey: ['search-cards'] }) // For search results
+      queryClient.invalidateQueries({ queryKey: ['favorite-cards'] }) // For favorites
       onSuccess?.()
       onOpenChange(false)
     }
@@ -181,27 +187,17 @@ export default function CardForm({ card, sectionId, open, onOpenChange, onSucces
 
     let finalFormData = { ...formData, section_id: sectionId }
 
-    // Upload image if selected
-    if (imageFile) {
-      try {
-        const imageUrl = await uploadImage(imageFile, 'cards')
-        finalFormData.image_url = imageUrl
-        
-        // Delete old image if updating
-        if (isEditing && card.image_url) {
-          const oldPath = card.image_url.split('/').pop()
-          await deleteImage(`cards/${oldPath}`)
-        }
-      } catch (error) {
-        console.error('Error uploading image:', error)
-        // Continue without image
-      }
-    }
-
     if (isEditing) {
-      updateMutation.mutate({ id: card.id, ...finalFormData })
+      updateMutation.mutate({ 
+        id: card.id, 
+        updates: finalFormData, 
+        imageFile: imageFile 
+      })
     } else {
-      createMutation.mutate(finalFormData)
+      createMutation.mutate({ 
+        cardData: finalFormData, 
+        imageFile: imageFile 
+      })
     }
   }
 

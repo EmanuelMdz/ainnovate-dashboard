@@ -105,6 +105,28 @@ export const getSectionImagePath = (sectionId, fileName) => {
 }
 
 /**
+ * Generate unique image path for folder
+ * @param {string} folderId - Folder ID
+ * @param {string} fileName - Original file name
+ * @returns {string} - Storage path
+ */
+export const getFolderImagePath = (folderId, fileName) => {
+  const extension = fileName.split('.').pop()
+  return `folders/${folderId}.webp`
+}
+
+/**
+ * Generate unique image path for card
+ * @param {string} cardId - Card ID
+ * @param {string} fileName - Original file name
+ * @returns {string} - Storage path
+ */
+export const getCardImagePath = (cardId, fileName) => {
+  const extension = fileName.split('.').pop()
+  return `cards/${cardId}.webp`
+}
+
+/**
  * Validate image file
  * @param {File} file - File to validate
  * @returns {boolean} - Whether file is valid

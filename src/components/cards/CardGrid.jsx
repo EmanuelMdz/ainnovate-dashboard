@@ -18,9 +18,9 @@ export default function CardGrid({ cards, favorites, recent, className, onDelete
       "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4",
       className
     )}>
-      {cards.map((card) => (
+      {cards.map((card, index) => (
         <Card
-          key={card.id}
+          key={card.id || card.card_id || `card-${index}`}
           card={card}
           favorites={favorites}
           recent={recent}

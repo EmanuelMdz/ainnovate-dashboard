@@ -1,5 +1,5 @@
 import { supabase, IMAGES_BUCKET } from './supabaseClient'
-import { uploadImage, deleteImage, getSectionImagePath } from './imageUtils'
+import { uploadImage, deleteImage, getSectionImagePath, getFolderImagePath, getCardImagePath } from './imageUtils'
 import { generateSlug } from './utils'
 
 // ===== SECTIONS =====
@@ -143,7 +143,66 @@ export const updateFolder = async (id, updates) => {
   return data
 }
 
+export const createFolderWithImage = async (folder, imageFile) => {
+  try {
+    // First create the folder to get an ID
+    const createdFolder = await createFolder(folder)
+    
+    // If image provided, upload it with unique path
+    if (imageFile) {
+      const imagePath = getFolderImagePath(createdFolder.id, imageFile.name)
+      const imageUrl = await uploadImage(imageFile, imagePath)
+      
+      // Update folder with image URL
+      const updatedFolder = await updateFolder(createdFolder.id, { image_url: imageUrl })
+      return updatedFolder
+    }
+    
+    return createdFolder
+  } catch (error) {
+    console.error('Error creating folder with image:', error)
+    throw error
+  }
+}
+
+export const updateFolderWithImage = async (id, updates, imageFile) => {
+  try {
+    // If new image provided, upload it with unique path
+    if (imageFile) {
+      const imagePath = getFolderImagePath(id, imageFile.name)
+      const imageUrl = await uploadImage(imageFile, imagePath)
+      updates.image_url = imageUrl
+    }
+    
+    return await updateFolder(id, updates)
+  } catch (error) {
+    console.error('Error updating folder with image:', error)
+    throw error
+  }
+}
+
 export const deleteFolder = async (id) => {
+  // First, get the folder to check if it has an image
+  const { data: folder, error: fetchError } = await supabase
+    .from('folders')
+    .select('image_url')
+    .eq('id', id)
+    .single()
+  
+  if (fetchError) throw fetchError
+  
+  // Delete the image from storage if it exists
+  if (folder?.image_url) {
+    try {
+      const imagePath = getFolderImagePath(id, 'image.webp')
+      await deleteImage(imagePath)
+    } catch (imageError) {
+      console.warn('Failed to delete folder image from storage:', imageError)
+      // Continue with folder deletion even if image deletion fails
+    }
+  }
+  
+  // Delete the folder from database
   const { error } = await supabase
     .from('folders')
     .delete()
@@ -219,7 +278,66 @@ export const updateCard = async (id, updates) => {
   return data
 }
 
+export const createCardWithImage = async (card, imageFile) => {
+  try {
+    // First create the card to get an ID
+    const createdCard = await createCard(card)
+    
+    // If image provided, upload it with unique path
+    if (imageFile) {
+      const imagePath = getCardImagePath(createdCard.id, imageFile.name)
+      const imageUrl = await uploadImage(imageFile, imagePath)
+      
+      // Update card with image URL
+      const updatedCard = await updateCard(createdCard.id, { image_url: imageUrl })
+      return updatedCard
+    }
+    
+    return createdCard
+  } catch (error) {
+    console.error('Error creating card with image:', error)
+    throw error
+  }
+}
+
+export const updateCardWithImage = async (id, updates, imageFile) => {
+  try {
+    // If new image provided, upload it with unique path
+    if (imageFile) {
+      const imagePath = getCardImagePath(id, imageFile.name)
+      const imageUrl = await uploadImage(imageFile, imagePath)
+      updates.image_url = imageUrl
+    }
+    
+    return await updateCard(id, updates)
+  } catch (error) {
+    console.error('Error updating card with image:', error)
+    throw error
+  }
+}
+
 export const deleteCard = async (id) => {
+  // First, get the card to check if it has an image
+  const { data: card, error: fetchError } = await supabase
+    .from('cards')
+    .select('image_url')
+    .eq('id', id)
+    .single()
+  
+  if (fetchError) throw fetchError
+  
+  // Delete the image from storage if it exists
+  if (card?.image_url) {
+    try {
+      const imagePath = getCardImagePath(id, 'image.webp')
+      await deleteImage(imagePath)
+    } catch (imageError) {
+      console.warn('Failed to delete card image from storage:', imageError)
+      // Continue with card deletion even if image deletion fails
+    }
+  }
+  
+  // Delete the card from database
   const { error } = await supabase
     .from('cards')
     .delete()

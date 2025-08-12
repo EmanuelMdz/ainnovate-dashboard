@@ -42,10 +42,40 @@ export function useRecent() {
     localStorage.removeItem(RECENT_KEY)
   }
 
+  const cleanupOrphanedItems = async (getCardFn) => {
+    if (!recent.length) return
+    
+    try {
+      // Check which cards still exist
+      const validCards = []
+      for (const item of recent) {
+        try {
+          const cardExists = await getCardFn(item.id || item.card_id)
+          if (cardExists) {
+            validCards.push(item)
+          }
+        } catch (error) {
+          // Card doesn't exist anymore, skip it
+          console.log(`Removing orphaned recent item: ${item.title || item.id}`)
+        }
+      }
+      
+      // Update recent list with only valid cards
+      if (validCards.length !== recent.length) {
+        setRecent(validCards)
+        localStorage.setItem(RECENT_KEY, JSON.stringify(validCards))
+        console.log(`Cleaned up ${recent.length - validCards.length} orphaned recent items`)
+      }
+    } catch (error) {
+      console.error('Error cleaning up orphaned recent items:', error)
+    }
+  }
+
   return {
     recent,
     addToRecent,
     removeFromRecent,
-    clearRecent
+    clearRecent,
+    cleanupOrphanedItems
   }
 }

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getSections, deleteSection, deleteCard } from '../lib/queries'
+import { getSections, deleteSection, deleteCard, getCard } from '../lib/queries'
 import { useFavorites } from '../hooks/useFavorites'
 import { useRecent } from '../hooks/useRecent'
 import { useToast } from '../hooks/useToast'
@@ -41,6 +41,13 @@ export default function Home({ favorites, recent }) {
     queryKey: ['sections'],
     queryFn: getSections
   })
+
+  // Cleanup orphaned recent items on component mount
+  useEffect(() => {
+    if (recent.recent.length > 0) {
+      recent.cleanupOrphanedItems(getCard)
+    }
+  }, []) // Only run once on mount
 
   // Delete section mutation
   const deleteSectionMutation = useMutation({
@@ -227,7 +234,7 @@ export default function Home({ favorites, recent }) {
                     )}
                     
                     <p className="text-sm text-muted-foreground">
-                      Explore resources and tools in this section
+                      {section.description || "Explore resources and tools in this section"}
                     </p>
                   </CardContent>
                 </Card>
