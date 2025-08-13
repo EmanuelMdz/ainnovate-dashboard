@@ -67,6 +67,18 @@ export const updateSectionWithImage = async (id, updates, imageFile) => {
       updates.image_url = imageUrl
     }
     
+    // If image_url is explicitly set to null, ensure it's properly cleared
+    if (updates.image_url === null) {
+      // Try to delete the old image from storage
+      try {
+        const imagePath = getSectionImagePath(id, 'image.webp')
+        await deleteImage(imagePath)
+      } catch (imageError) {
+        console.warn('Could not delete old section image:', imageError)
+        // Don't throw - section update should still proceed
+      }
+    }
+    
     return await updateSection(id, updates)
   } catch (error) {
     console.error('Error updating section with image:', error)

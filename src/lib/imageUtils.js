@@ -47,7 +47,7 @@ export const processImage = (file, maxWidth = 800, maxHeight = 600, quality = 0.
  * Upload image to Supabase Storage
  * @param {File|Blob} file - Image file to upload
  * @param {string} path - Storage path (e.g., 'sections/section-id.webp')
- * @returns {Promise<string>} - Public URL of uploaded image
+ * @returns {Promise<string>} - Public URL of uploaded image with cache-busting
  */
 export const uploadImage = async (file, path) => {
   try {
@@ -69,7 +69,10 @@ export const uploadImage = async (file, path) => {
       .from(IMAGES_BUCKET)
       .getPublicUrl(path)
     
-    return publicUrl
+    // Add cache-busting timestamp to force browser refresh
+    const cacheBustingUrl = `${publicUrl}?t=${Date.now()}`
+    
+    return cacheBustingUrl
   } catch (error) {
     console.error('Error uploading image:', error)
     throw error
