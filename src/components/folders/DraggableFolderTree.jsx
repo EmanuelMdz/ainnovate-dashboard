@@ -18,42 +18,46 @@ function DraggableFolderItem({ folder, sectionId, level = 0, expandedFolders, cu
           {...provided.dragHandleProps}
           className={cn(snapshot.isDragging && 'opacity-75')}
         >
-          <div className="flex items-center">
-            <div style={{ paddingLeft: `${level * 12}px` }} className="flex items-center flex-1">
-              {hasChildren ? (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 p-0 mr-1"
-                  onClick={() => onToggleFolder(folder.id)}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-3 w-3" />
+          <div className="flex items-center" style={{ paddingLeft: `${level * 12}px` }}>
+            <Link to={`/s/${sectionId}/f/${folder.id}`} className="flex-1">
+              <Button
+                variant={isSelected ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full justify-start h-8 px-2 text-sm",
+                  isSelected && "bg-secondary text-secondary-foreground"
+                )}
+              >
+                <div className="flex items-center w-full">
+                  {hasChildren ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 p-0 mr-1 hover:bg-accent"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        onToggleFolder(folder.id)
+                      }}
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-3 w-3" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3" />
+                      )}
+                    </Button>
                   ) : (
-                    <ChevronRight className="h-3 w-3" />
+                    <div className="w-6 mr-1" />
                   )}
-                </Button>
-              ) : (
-                <div className="w-6 mr-1" />
-              )}
-              
-              <Link to={`/s/${sectionId}/f/${folder.id}`} className="flex-1">
-                <Button
-                  variant={isSelected ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full justify-start h-8 px-2 text-sm",
-                    isSelected && "bg-secondary text-secondary-foreground"
-                  )}
-                >
+                  
                   {isExpanded ? (
                     <FolderOpen className="h-4 w-4 mr-2" />
                   ) : (
                     <Folder className="h-4 w-4 mr-2" />
                   )}
                   <span className="truncate">{folder.name}</span>
-                </Button>
-              </Link>
-            </div>
+                </div>
+              </Button>
+            </Link>
           </div>
 
           {hasChildren && isExpanded && (

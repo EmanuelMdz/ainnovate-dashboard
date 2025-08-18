@@ -243,80 +243,83 @@ export default function SectionView({ favorites, recent }) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {folderTree.map((folder) => (
-                <Card key={folder.id} className="group transition-all duration-200 hover:shadow-lg hover:scale-[1.02] h-full relative">
-                  <CardContent className="p-6">
-                    {/* Folder Image */}
-                    {/* Folder Cover Image - Direct Supabase Storage URL */}
-                    <div className="aspect-video w-full mb-4 overflow-hidden rounded-md bg-muted">
-                      <img
-                        key={`folder-card-${folder.id}-${Date.now()}`}
-                        src={`https://krdrqfibrvndkfaenasb.supabase.co/storage/v1/object/public/dashboard-images/folders/${folder.id}.webp?t=${Date.now()}`}
-                        alt={folder.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.style.display = 'none'
-                        }}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between mb-4">
-                      <Link to={`/s/${sectionId}/f/${folder.id}`} className="flex items-center space-x-3 flex-1">
-                        <FolderOpen className="h-6 w-6 text-blue-500" />
-                        <div>
-                          <h3 className="font-semibold text-lg">{folder.name}</h3>
-                        </div>
-                      </Link>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Link to={`/s/${sectionId}/f/${folder.id}`}>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                        </Link>
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleEditFolder(folder)
-                              }}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Folder
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDeleteFolder(folder)
-                              }}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Folder
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                <Link key={folder.id} to={`/s/${sectionId}/f/${folder.id}`} className="block">
+                  <Card className="group transition-all duration-200 hover:shadow-lg hover:scale-[1.02] h-full relative cursor-pointer">
+                    <CardContent className="p-6">
+                      {/* Folder Image */}
+                      {/* Folder Cover Image - Direct Supabase Storage URL */}
+                      <div className="aspect-video w-full mb-4 overflow-hidden rounded-md bg-muted">
+                        <img
+                          key={`folder-card-${folder.id}-${Date.now()}`}
+                          src={`https://krdrqfibrvndkfaenasb.supabase.co/storage/v1/object/public/dashboard-images/folders/${folder.id}.webp?t=${Date.now()}`}
+                          alt={folder.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.target.style.display = 'none'
+                          }}
+                        />
                       </div>
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground">
-                      {folder.children && folder.children.length > 0 
-                        ? `${folder.children.length} subfolder${folder.children.length !== 1 ? 's' : ''}`
-                        : 'Explore resources in this folder'
-                      }
-                    </p>
-                  </CardContent>
-                </Card>
+                      
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3 flex-1">
+                          <FolderOpen className="h-6 w-6 text-blue-500" />
+                          <div>
+                            <h3 className="font-semibold text-lg">{folder.name}</h3>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                }}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEditFolder(folder)
+                                }}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit Folder
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteFolder(folder)
+                                }}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Folder
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground">
+                        {folder.children && folder.children.length > 0 
+                          ? `${folder.children.length} subfolder${folder.children.length !== 1 ? 's' : ''}`
+                          : 'Explore resources in this folder'
+                        }
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           </div>

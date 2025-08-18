@@ -12,7 +12,8 @@ import {
   Folder,
   FolderOpen
 } from 'lucide-react'
-import AinnovateLogo from '../images/ainnovate-logo-blue.svg'
+import AinnovateLogoDark from '../images/ainnovate-logo-blue.svg'
+import AinnovateLogoLight from '../images/logo_ainnovate_svg_blanco_horizontal.svg'
 import { Button } from '@/components/ui/button'
 import { getSections, getFoldersBySection, reorderFoldersInParent, moveFolderToParent, reorderSections } from '@/lib/queries'
 import { buildFolderTree } from '@/lib/utils'
@@ -135,17 +136,17 @@ export default function Sidebar({ isOpen, onToggle, darkMode, onToggleDarkMode, 
           {isOpen ? (
             <div className="flex items-center justify-center flex-1">
               <img 
-                src={AinnovateLogo} 
+                src={darkMode ? AinnovateLogoLight : AinnovateLogoDark} 
                 alt="Ainnovate" 
-                className="h-10 w-auto"
+                className="h-15 w-auto"
               />
             </div>
           ) : (
             <div className="flex items-center justify-center w-full">
               <img 
-                src={AinnovateLogo} 
+                src={darkMode ? AinnovateLogoLight : AinnovateLogoDark} 
                 alt="Ainnovate" 
-                className="h-8 w-auto"
+                className="h-15 w-auto"
               />
             </div>
           )}

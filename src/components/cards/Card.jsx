@@ -27,6 +27,7 @@ export default function Card({ card, favorites, recent, className, onDelete, onE
   }
 
   const handleCopyUrl = async (e) => {
+    e.preventDefault()
     e.stopPropagation()
     const success = await copyToClipboard(card.url)
     if (success) {
@@ -37,16 +38,19 @@ export default function Card({ card, favorites, recent, className, onDelete, onE
   }
 
   const handleToggleFavorite = (e) => {
+    e.preventDefault()
     e.stopPropagation()
     favorites.toggleFavorite(cardId)
   }
 
   const handleDelete = (e) => {
+    e.preventDefault()
     e.stopPropagation()
     onDelete?.(card)
   }
 
   const handleEdit = (e) => {
+    e.preventDefault()
     e.stopPropagation()
     onEdit?.(card)
   }
@@ -128,7 +132,10 @@ export default function Card({ card, favorites, recent, className, onDelete, onE
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                  }}
                 >
                   <MoreHorizontal className="h-3 w-3 text-muted-foreground" />
                 </Button>
@@ -138,7 +145,10 @@ export default function Card({ card, favorites, recent, className, onDelete, onE
                   <Link 
                     to={`/c/${cardId}`} 
                     className="w-full"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     View Details
